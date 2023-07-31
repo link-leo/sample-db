@@ -184,22 +184,81 @@ create table xwlk.VisitReason (
 ) with (system_versioning = on (history_table = hist.VisitReason));
 go
 
-create table xwlk.VisitTreatment (
-	VisitTreatmentId int not null
-	,VisitId int
+create table xwlk.VisitReasonTreatment (
+	VisitReasonTreatmentId int not null
+	,VisitReasonId int
 	,TreatmentCodeId int
-	,constraint pk_VisitTreatment_VisitTreatmentId primary key clustered (VisitTreatmentId)
-	,constraint fk_VisitTreatment_VisitId foreign key (VisitId)
-	references dbo.Visit (VisitId)
+	,constraint pk_VisitReasonTreatment_VisitReasonTreatmentId primary key clustered (VisitReasonTreatmentId)
+	,constraint fk_VisitReasonTreatment_VisitReasonId foreign key (VisitReasonId)
+	references xwlk.VisitReason (VisitReasonId)
 	on delete set null
 	on update cascade
-	,constraint fk_VisitTreatment_TreatmentCodeId foreign key (TreatmentCodeId)
+	,constraint fk_VisitReasonTreatment_TreatmentCodeId foreign key (TreatmentCodeId)
 	references ref.TreatmentCode (TreatmentCodeId)
 	on delete set null
 	on update cascade
-	,constraint uq_VisitTreatment_VisitTreatmentCode unique (VisitId,TreatmentCodeId)
 	,ValidFrom datetime2 generated always as row start not null
 	,ValidTo datetime2 generated always as row end not null
 	,period for system_time (ValidFrom,ValidTo)
-) with (system_versioning = on (history_table = hist.VisitTreatment));
+) with (system_versioning = on (history_table = hist.VisitReasonTreatment));
+go
+
+/***************
+* CREATE VIEWS *
+***************/
+
+create schema rpt;
+go
+
+create or alter view rpt.vwPatientRoster as
+select
+	p.PatientId
+	,p.PatientName
+	,a.AnimalTypeName
+	,p.PatientDOB
+from dbo.Patient p
+left join ref.AnimalType a
+	on a.AnimalTypeId=p.AnimalTypeId;
+go
+
+create or alter view rpt.vwPatientOwners as
+select
+	pr.PatientId
+	,pr.PatientName
+	,pr.AnimalTypeName
+	,pr.PatientDOB
+	,coalesce(o.LastName+', '+o.FirstName,o.LastName,o.FirstName) OwnerName
+	,o.PhoneNumber
+from rpt.vwPatientRoster pr
+left join xwlk.PatientOwners po
+	on po.PatientId=pr.PatientId
+left join dbo.[Owner] o
+	on o.OwnerId=po.OwnerId;
+go
+
+create or alter view rpt.vwVisitSummary as
+select
+	v.VisitId
+	,v.VisitDateTime
+	,pr.PatientId
+	,pr.PatientName
+	,pr.AnimalTypeName
+	,pr.PatientDOB
+	,rc.ReasonCode
+	,rc.ReasonCodeDescription
+	,tc.TreatmentCode
+	,tc.TreatmentCodeDescription
+from dbo.Visit v
+left join xwlk.VisitPatient vp
+	on vp.VisitId=v.VisitId
+left join rpt.vwPatientRoster pr
+	on pr.PatientId=vp.PatientId
+left join xwlk.VisitReason vr
+	on vr.VisitId=v.VisitId
+left join ref.ReasonCode rc
+	on rc.ReasonCodeId=vr.ReasonCodeId
+left join xwlk.VisitReasonTreatment vrt
+	on vrt.VisitReasonId=vr.VisitReasonId
+left join ref.TreatmentCode tc
+	on tc.TreatmentCodeId=vrt.TreatmentCodeId;
 go
