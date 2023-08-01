@@ -166,7 +166,7 @@ create table xwlk.VisitPatient (
 go
 
 create table xwlk.VisitReason (
-	VisitReasonId int not null
+	VisitReasonId int identity not null
 	,VisitId int
 	,ReasonCodeId int
 	,constraint pk_VisitReason_VisitReasonId primary key clustered (VisitReasonId)
@@ -186,7 +186,7 @@ create table xwlk.VisitReason (
 go
 
 create table xwlk.VisitReasonTreatment (
-	VisitReasonTreatmentId int not null
+	VisitReasonTreatmentId int identity not null
 	,VisitReasonId int
 	,TreatmentCodeId int
 	,constraint pk_VisitReasonTreatment_VisitReasonTreatmentId primary key clustered (VisitReasonTreatmentId)
@@ -268,8 +268,6 @@ go
 * LOAD DATA *
 ************/
 
---declare @dt date = getdate();
-
 insert into dbo.[Provider] (FirstName,LastName,PhoneNumber,StartDate) values
 	('Leopold','Spaceman','555-654-3210','2020-04-20')
 	,('Beverly','Crusher','818-987-6543','2021-06-25');
@@ -328,8 +326,6 @@ insert into ref.TreatmentCode (TreatmentCode,TreatmentCodeDescription) values
 	,('TPRO','Prescribed protocol')
 	,('TFUP','Requires follow-up');
 
---declare @pvs int = (select count(ProviderId) from dbo.[Provider]);
-
 insert into dbo.Visit (VisitDateTime)
 select dtm from (values
 	(cast('2023-06-05 10:00:00' as datetime2))
@@ -340,3 +336,36 @@ select dtm from (values
 	,(cast('2023-06-07 10:30:00' as datetime2))
 	,(cast('2023-06-07 12:00:00' as datetime2))
 ) v(dtm);
+
+if object_id(N'tempdb..#visit') is not null drop table #visit;
+
+with combo_sample as (
+	select top 7
+		p.ProviderId
+		,a.PatientId
+		,rc.ReasonCodeId
+		,tc.TreatmentCodeId
+	from dbo.[Provider] p
+		,dbo.Patient a
+		,ref.ReasonCode rc
+		,ref.TreatmentCode tc
+	order by newid()
+)
+
+select row_number() over (order by newid()) VisitId,* into #visit from combo_sample;
+
+insert into xwlk.VisitProvider (VisitId,ProviderId)
+select VisitId,ProviderId from #visit;
+
+insert into xwlk.VisitPatient (VisitId,PatientId)
+select VisitId,PatientId from #visit;
+
+insert into xwlk.VisitReason (VisitId,ReasonCodeId)
+select VisitId,ReasonCodeId from #visit;
+
+insert into xwlk.VisitReasonTreatment (VisitReasonId,TreatmentCodeId)
+select vr.VisitReasonId,v.TreatmentCodeId
+from #visit v
+join xwlk.VisitReason vr
+	on vr.VisitId=v.VisitId
+	and vr.ReasonCodeId=v.ReasonCodeId;
