@@ -39,6 +39,7 @@ create table ref.AnimalType (
 	AnimalTypeId int identity not null
 	,AnimalTypeName varchar(255)
 	,constraint pk_AnimalType_AnimalTypeId primary key clustered (AnimalTypeId)
+	,constraint uq_AnimalType_AnimalTypeName unique (AnimalTypeName)
 	,ValidFrom datetime2 generated always as row start not null
 	,ValidTo datetime2 generated always as row end not null
 	,period for system_time (ValidFrom,ValidTo)
@@ -74,20 +75,20 @@ create table dbo.[Owner] (
 ) with (system_versioning = on (history_table = hist.Owner));
 go
 
-create table xwlk.PatientOwners (
+create table xwlk.PatientOwner (
 	PatientId int
 	,OwnerId int
-	,constraint pk_PatientOwners_PatientOwnerId primary key clustered (PatientId,OwnerId)
-	,constraint fk_PatientOwners_PatientId foreign key (PatientId)
+	,constraint pk_PatientOwner_PatientOwnerId primary key clustered (PatientId,OwnerId)
+	,constraint fk_PatientOwner_PatientId foreign key (PatientId)
 	references dbo.Patient (PatientId)
 	on update cascade
-	,constraint fk_PatientOwners_OwnerId foreign key (OwnerId)
+	,constraint fk_PatientOwner_OwnerId foreign key (OwnerId)
 	references dbo.[Owner] (OwnerId)
 	on update cascade
 	,ValidFrom datetime2 generated always as row start not null
 	,ValidTo datetime2 generated always as row end not null
 	,period for system_time (ValidFrom,ValidTo)
-) with (system_versioning = on (history_table = hist.PatientOwners));
+) with (system_versioning = on (history_table = hist.PatientOwner));
 go
 
 create table ref.ReasonCode (
@@ -230,7 +231,7 @@ select
 	,coalesce(o.LastName+', '+o.FirstName,o.LastName,o.FirstName) OwnerName
 	,o.PhoneNumber
 from rpt.vwPatientRoster pr
-left join xwlk.PatientOwners po
+left join xwlk.PatientOwner po
 	on po.PatientId=pr.PatientId
 left join dbo.[Owner] o
 	on o.OwnerId=po.OwnerId;
@@ -262,3 +263,80 @@ left join xwlk.VisitReasonTreatment vrt
 left join ref.TreatmentCode tc
 	on tc.TreatmentCodeId=vrt.TreatmentCodeId;
 go
+
+/************
+* LOAD DATA *
+************/
+
+--declare @dt date = getdate();
+
+insert into dbo.[Provider] (FirstName,LastName,PhoneNumber,StartDate) values
+	('Leopold','Spaceman','555-654-3210','2020-04-20')
+	,('Beverly','Crusher','818-987-6543','2021-06-25');
+
+insert into ref.AnimalType (AnimalTypeName) values
+	('dog'),('cat'),('pig'),('snake'),('lizard'),('bird'),('rodent'),('fish');
+
+insert into dbo.Patient (AnimalTypeId,PatientName,PatientDOB)
+select
+	atyp.AnimalTypeId
+	,pets.PetName
+	,pets.PetDOB
+from (
+	values
+		('Steve','rodent','2022-07-20')
+		,('Kenneth','snake','2022-04-18')
+		,('Sherman','dog','2010-06-06')
+		,('Chris','pig','2017-07-11')
+) pets(PetName,PetType,PetDOB)
+join ref.AnimalType atyp
+	on atyp.AnimalTypeName=pets.PetType;
+
+insert into dbo.[Owner] (FirstName,LastName,PhoneNumber) values
+	('Jack','O''Neill','555-654-3210')
+	,('Malcolm','Reynolds','747-987-6543')
+	,('Inara','Serra','747-546-3218')
+	,('Connor','MacLeod','111-111-1111');
+
+insert into xwlk.PatientOwners (PatientId,OwnerId)
+select
+	pat.PatientId
+	,own.OwnerId
+from (values
+	('Steve','Jack')
+	,('Kenneth','Malcolm')
+	,('Kenneth','Inara')
+	,('Sherman','Connor')
+	,('Chris','Connor')
+) pos(PetName,OwnerName)
+join dbo.Patient pat
+	on pat.PatientName=pos.PetName
+join dbo.[Owner] own
+	on own.FirstName=pos.OwnerName;
+
+insert into ref.ReasonCode (ReasonCode,ReasonCodeDescription) values
+	('RREG','Regular check-up')
+	,('RINQ','Standard questions')
+	,('RILL','Illness')
+	,('RINJ','Injury')
+	,('RFUP','Follow-up');
+
+insert into ref.TreatmentCode (TreatmentCode,TreatmentCodeDescription) values
+	('TNON','No treatment needed and/or good health')
+	,('TMED','Prescribed medication')
+	,('TDEV','Applied medical device')
+	,('TPRO','Prescribed protocol')
+	,('TFUP','Requires follow-up');
+
+--declare @pvs int = (select count(ProviderId) from dbo.[Provider]);
+
+insert into dbo.Visit (VisitDateTime)
+select dtm from (values
+	(cast('2023-06-05 10:00:00' as datetime2))
+	,(cast('2023-06-05 14:00:00' as datetime2))
+	,(cast('2023-06-05 13:00:00' as datetime2))
+	,(cast('2023-06-06 09:30:00' as datetime2))
+	,(cast('2023-06-06 11:45:00' as datetime2))
+	,(cast('2023-06-07 10:30:00' as datetime2))
+	,(cast('2023-06-07 12:00:00' as datetime2))
+) v(dtm);
