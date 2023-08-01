@@ -150,7 +150,7 @@ create table xwlk.VisitPatient (
 	,VisitId int
 	,PatientId int
 	,constraint pk_VisitPatient_VisitPatientId primary key clustered (VisitPatientId)
-	,constraint fk_VisitProvider_VisitId foreign key (VisitId)
+	,constraint fk_VisitPatient_VisitId foreign key (VisitId)
 	references dbo.Visit (VisitId)
 	on delete set null
 	on update cascade
@@ -298,7 +298,7 @@ insert into dbo.[Owner] (FirstName,LastName,PhoneNumber) values
 	,('Inara','Serra','747-546-3218')
 	,('Connor','MacLeod','111-111-1111');
 
-insert into xwlk.PatientOwners (PatientId,OwnerId)
+insert into xwlk.PatientOwner (PatientId,OwnerId)
 select
 	pat.PatientId
 	,own.OwnerId
