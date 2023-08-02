@@ -127,7 +127,7 @@ Table "xwlk"."VisitPatient" [headercolor: #006400] {
   "PatientId" int
   "ValidFrom" datetime2 [not null]
   "ValidTo" datetime2 [not null]
-
+Note: 'The patients seen at the visit.'
 Indexes {
   VisitPatientId [pk]
   (VisitId, PatientId) [unique, name: "uq_VisitPatient_VisitPatientId"]
