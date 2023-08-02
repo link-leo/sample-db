@@ -1,0 +1,219 @@
+Project vet {
+  database_type: 'SQL Server'
+  Note: '''
+  A sandbox for practicing SQL queries. It simulates a small veterinary practice treating various pets and tracking their owners and visits.
+  
+  ---
+
+  Clone the repository and run `vet.sql` to create the database and load it with sample data.
+  ```
+  git clone https://github.com/link-leo/sample-db.git
+  ```
+
+  > This database uses [MS SQL Server Temporal Tables](https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal-tables) to track changes as data is updated.
+  
+  ---
+  
+  Find more example databases at: https://github.com/link-leo/sample-db
+  '''
+}
+
+Table "ref"."AnimalType" [headercolor: #8b0000] {
+  "AnimalTypeId" int [not null, increment]
+  "AnimalTypeName" varchar(255)
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The type of animal for each patient.'
+Indexes {
+  AnimalTypeId [pk]
+  AnimalTypeName [unique, name: "uq_AnimalType_AnimalTypeName"]
+}
+}
+
+Table "dbo"."Owner" [headercolor: #00008b] {
+  "OwnerId" int [not null, increment]
+  "FirstName" varchar(255)
+  "MiddleName" varchar(255)
+  "LastName" varchar(255)
+  "PhoneNumber" varchar(15)
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'Owners of each patient to the clinic.'
+Indexes {
+  OwnerId [pk]
+}
+}
+
+Table "dbo"."Patient" [headercolor: #00008b] {
+  "PatientId" int [not null, increment]
+  "AnimalTypeId" int
+  "PatientName" varchar(255)
+  "PatientDOB" date
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'Patients seen at the clinic.'
+Indexes {
+  PatientId [pk]
+}
+}
+
+Table "xwlk"."PatientOwner" [headercolor: #006400] {
+  "PatientId" int
+  "OwnerId" int
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'Linking each patient to owners.'
+Indexes {
+  (PatientId, OwnerId) [pk]
+}
+}
+
+Table "dbo"."Provider" [headercolor: #00008b] {
+  "ProviderId" int [not null, increment]
+  "FirstName" varchar(255)
+  "MiddleName" varchar(255)
+  "LastName" varchar(255)
+  "PhoneNumber" varchar(15)
+  "StartDate" date
+  "EndDate" date
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The providers at the clinic who treat patients.'
+Indexes {
+  ProviderId [pk]
+}
+}
+
+Table "ref"."ReasonCode" [headercolor: #8b0000] {
+  "ReasonCodeId" int [not null, increment]
+  "ReasonCode" varchar(6)
+  "ReasonCodeDescription" varchar(255)
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The reason the visit was scheduled/conducted.'
+Indexes {
+  ReasonCodeId [pk]
+  ReasonCode [unique, name: "uq_ReasonCode_ReasonCode"]
+}
+}
+
+Table "ref"."TreatmentCode" [headercolor: #8b0000] {
+  "TreatmentCodeId" int [not null, increment]
+  "TreatmentCode" varchar(6)
+  "TreatmentCodeDescription" varchar(255)
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The result of the visit and the prescribed treatment.'
+Indexes {
+  TreatmentCodeId [pk]
+  TreatmentCode [unique, name: "uq_TreatmentCode_TreatmentCode"]
+}
+}
+
+Table "dbo"."Visit" [headercolor: #00008b] {
+  "VisitId" int [not null, increment]
+  "VisitDateTime" datetime2
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'Tracks all of the patient visits to the clinic.'
+Indexes {
+  VisitId [pk]
+}
+}
+
+Table "xwlk"."VisitPatient" [headercolor: #006400] {
+  "VisitPatientId" int [not null, increment]
+  "VisitId" int
+  "PatientId" int
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+
+Indexes {
+  VisitPatientId [pk]
+  (VisitId, PatientId) [unique, name: "uq_VisitPatient_VisitPatientId"]
+}
+}
+
+Table "xwlk"."VisitProvider" [headercolor: #006400] {
+  "VisitProviderId" int [not null, increment]
+  "VisitId" int
+  "ProviderId" int
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The provider(s) who attended the visit.'
+Indexes {
+  VisitProviderId [pk]
+  (VisitId, ProviderId) [unique, name: "uq_VisitProvider_VisitProviderId"]
+}
+}
+
+Table "xwlk"."VisitReason" [headercolor: #006400] {
+  "VisitReasonId" int [not null, increment]
+  "VisitId" int
+  "ReasonCodeId" int
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The `ReasonCode`(s) assigned to each visit.'
+Indexes {
+  VisitReasonId [pk]
+  (VisitId, ReasonCodeId) [unique, name: "uq_VisitReason_VisitReasonCode"]
+}
+}
+
+Table "xwlk"."VisitReasonTreatment" [headercolor: #006400] {
+  "VisitReasonTreatmentId" int [not null, increment]
+  "VisitReasonId" int
+  "TreatmentCodeId" int
+  "ValidFrom" datetime2 [not null]
+  "ValidTo" datetime2 [not null]
+Note: 'The `TreatmentCode`(s) assigned to each reason for visit.'
+Indexes {
+  VisitReasonTreatmentId [pk]
+}
+}
+
+Ref "fk_Patient_AnimalTypeId":"ref"."AnimalType"."AnimalTypeId" < "dbo"."Patient"."AnimalTypeId" [update: cascade, delete: set null]
+
+Ref "fk_PatientOwner_PatientId":"dbo"."Patient"."PatientId" < "xwlk"."PatientOwner"."PatientId" [update: cascade]
+
+Ref "fk_PatientOwner_OwnerId":"dbo"."Owner"."OwnerId" < "xwlk"."PatientOwner"."OwnerId" [update: cascade]
+
+Ref "fk_VisitProvider_VisitId":"dbo"."Visit"."VisitId" < "xwlk"."VisitProvider"."VisitId" [update: cascade, delete: set null]
+
+Ref "fk_VisitProvider_ProviderId":"dbo"."Provider"."ProviderId" < "xwlk"."VisitProvider"."ProviderId" [update: cascade, delete: set null]
+
+Ref "fk_VisitPatient_VisitId":"dbo"."Visit"."VisitId" < "xwlk"."VisitPatient"."VisitId" [update: cascade, delete: set null]
+
+Ref "fk_Visit_PatientId":"dbo"."Patient"."PatientId" < "xwlk"."VisitPatient"."PatientId" [update: cascade, delete: set null]
+
+Ref "fk_VisitReason_VisitId":"dbo"."Visit"."VisitId" < "xwlk"."VisitReason"."VisitId" [update: cascade, delete: set null]
+
+Ref "fk_VisitReason_ReasonCodeId":"ref"."ReasonCode"."ReasonCodeId" < "xwlk"."VisitReason"."ReasonCodeId" [update: cascade, delete: set null]
+
+Ref "fk_VisitReasonTreatment_VisitReasonId":"xwlk"."VisitReason"."VisitReasonId" < "xwlk"."VisitReasonTreatment"."VisitReasonId" [update: cascade, delete: set null]
+
+Ref "fk_VisitReasonTreatment_TreatmentCodeId":"ref"."TreatmentCode"."TreatmentCodeId" < "xwlk"."VisitReasonTreatment"."TreatmentCodeId" [update: cascade, delete: set null]
+
+TableGroup Patient {
+  "ref"."AnimalType"
+  "dbo"."Owner"
+  "dbo"."Patient"
+  "xwlk"."PatientOwner"
+}
+
+TableGroup Provider {
+  "dbo"."Provider"
+}
+
+TableGroup Reference {
+  "ref"."ReasonCode"
+  "ref"."TreatmentCode"
+}
+
+TableGroup Visit {
+  "dbo"."Visit"
+  "xwlk"."VisitPatient"
+  "xwlk"."VisitProvider"
+  "xwlk"."VisitReason"
+  "xwlk"."VisitReasonTreatment"
+}
