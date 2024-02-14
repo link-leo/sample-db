@@ -2,19 +2,10 @@ Project vet {
   database_type: 'SQL Server'
   Note: '''
   A sandbox for practicing SQL queries. It simulates a small veterinary practice treating various pets and tracking their owners and visits.
-  
-  ---
 
-  Clone the repository and run `vet.sql` to create the database and load it with sample data.
-  ```
-  git clone https://github.com/link-leo/sample-db.git
-  ```
+  Find more example databases (or clone the repository to get them all) at: https://github.com/link-leo/sample-db
 
   > This database uses [MS SQL Server Temporal Tables](https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal-tables) to track changes as data is updated.
-  
-  ---
-  
-  Find more example databases at: https://github.com/link-leo/sample-db
   '''
 }
 
