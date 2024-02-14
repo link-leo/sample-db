@@ -1,0 +1,161 @@
+Project flight {
+  database_type: 'MS SQL Server'
+  Note: '''
+  ## Purpose
+
+  The `flight` database was designed to be a sandbox for practicing SQL queries. It simulates a small airline servicing various routes between airports and assigning crew to the airplane for each flight. It comes with a variety of views to demonstrate how data is organized.
+
+  ## Use
+
+  Access the DDL & DML to create this database and populate it with data using [the repository at this link](https://git.leocorde.me/gitea/starlord/flight) and executing the `.sql` files therein.
+  ```
+  git clone https://git.leocorde.me/gitea/starlord/flight.git
+  ```
+
+  ## More
+
+  Find more example databases at [leocorde.me](https://leocorde.me/db)
+  '''
+}
+
+Table "dbo"."Airplane" [headercolor: #00008b] {
+  "AirplaneId" int [not null, increment]
+  "Serial" uniqueidentifier [not null]
+  "ModelId" int
+Note: 'All airplanes in the airline\'s fleet.'
+Indexes {
+  AirplaneId [pk] //name: "pk_Airplane_AirplaneId"]
+  Serial [unique, name: "uq_Airplane_Serial"]
+}
+}
+
+Table "dbo"."Airport" [headercolor: #00008b] {
+  "AirportId" int [not null, increment]
+  "AirportCode" varchar(5) [not null]
+  "AirportName" varchar(255) [not null]
+  "Terminals" int
+  "City" varchar(255) [not null]
+  "State" varchar(2) [not null]
+Note: 'All airports participating in the airline.'
+Indexes {
+  AirportId [pk] //name: "pk_Airport_AirportId"]
+  AirportCode [unique, name: "uq_Airport_AirportCode"]
+}
+}
+
+Table "dbo"."Crew" [headercolor: #00008b] {
+  "CrewId" int [not null, increment]
+  "CrewRankId" int
+  "FirstName" varchar(255)
+  "LastName" varchar(255)
+  "IsActive" bit [not null, default: 0]
+Note: 'Full roster of all crew for the airline.'
+Indexes {
+  CrewId [pk] //name: "pk_Crew_CrewId"]
+}
+}
+
+Table "ref"."CrewRank" [headercolor: #8b0000] {
+  "CrewRankId" int [not null, increment]
+  "CrewRankName" varchar(255) [not null]
+Note: 'All possible ranks assignable to/earnable by Crew.'
+Indexes {
+  CrewRankId [pk] //name:"pk_CrewRank_CrewRankId"]
+  CrewRankName [unique, name: "uq_CrewRank_RankName"]
+}
+}
+
+Table "ref"."CrewType" [headercolor: #8b0000] {
+  "CrewTypeId" int [not null, increment]
+  "CrewTypeName" varchar(255) [not null]
+Note: 'All possible types of crew on a flight.'
+Indexes {
+  CrewTypeId [pk] //name: "pk_CrewType_CrewTypeId"]
+  CrewTypeName [unique, name: "uq_CrewType_CrewTypeName"]
+}
+}
+
+Table "dbo"."Flight" [headercolor: #00008b] {
+  "FlightId" int [not null, increment]
+  "RouteId" int [note: 'The route chosen for a flight.']
+  "AirplaneId" int [note: 'The airplane used for a flight.']
+  "TakeoffLocal" datetime2
+  "LandingLocal" datetime2
+Note: 'Individual flight tracking.'
+Indexes {
+  FlightId [pk] //name: "pk_Flight_FlightId"]
+  (RouteId, TakeoffLocal, LandingLocal) [unique, name: "uq_Flight_Traffic"]
+}
+}
+
+Table "dbo"."FlightCrew" [headercolor: #006400] {
+  "FlightCrewId" int [not null, increment]
+  "FlightId" int
+  "CrewId" int
+  "CrewTypeId" int
+Note: 'Crew working on a particular flight and with which role/job.'
+Indexes {
+  FlightCrewId [pk] //name: "pk_FlightCrew_FlightCrewId"]
+  (FlightId, CrewTypeId) [unique, name: "uq_FlightCrew_FlightCrewType"]
+}
+}
+
+Table "ref"."Model" [headercolor: #8b0000] {
+  "ModelId" int [not null, increment]
+  "ModelSerial" varchar(50) [not null]
+  "ModelName" varchar(255) [not null]
+Note: 'All physical models of aircraft.'
+Indexes {
+  ModelId [pk] //name: "pk_Model_ModelId"]
+  ModelSerial [unique, name: "uq_Model_ModelSerial"]
+  ModelName [unique, name: "uq_Model_ModelName"]
+}
+}
+
+Table "dbo"."Route" [headercolor: #006400] {
+  "RouteId" int [not null, increment]
+  "OriginAirportId" int [not null]
+  "DestinationAirportId" int [not null]
+  "IsActive" bit [not null, default: 0]
+Note: 'All possible routes the airline can service.'
+Indexes {
+  RouteId [pk] //name: "pk_Route_RouteId"]
+  (OriginAirportId, DestinationAirportId) [unique, name: "uq_Route_NoDupRoutes"]
+}
+}
+
+Ref "fk_Crew_CrewRankId":"ref"."CrewRank"."CrewRankId" < "dbo"."Crew"."CrewRankId" [update: cascade, delete: set null]
+
+Ref "fk_Airplane_ModelId":"ref"."Model"."ModelId" < "dbo"."Airplane"."ModelId" [update: cascade, delete: set null]
+
+Ref "fk_Route_OriginAirportId":"dbo"."Airport"."AirportId" < "dbo"."Route"."OriginAirportId" [update: no action, delete: no action]
+
+Ref "fk_Route_DestinationAirportId":"dbo"."Airport"."AirportId" < "dbo"."Route"."DestinationAirportId" [update: no action, delete: no action]
+
+Ref "fk_Flight_RouteId":"dbo"."Route"."RouteId" < "dbo"."Flight"."RouteId" [update: cascade, delete: set null]
+
+Ref "fk_Flight_AirplaneId":"dbo"."Airplane"."AirplaneId" < "dbo"."Flight"."AirplaneId" [update: cascade, delete: set null]
+
+Ref "fk_FlightCrew_FlightId":"dbo"."Flight"."FlightId" < "dbo"."FlightCrew"."FlightId" [update: cascade, delete: set null]
+
+Ref "fk_FlightCrew_CrewId":"dbo"."Crew"."CrewId" < "dbo"."FlightCrew"."CrewId" [update: cascade, delete: set null]
+
+Ref "fk_FlightCrew_CrewTypeId":"ref"."CrewType"."CrewTypeId" < "dbo"."FlightCrew"."CrewTypeId" [update: cascade, delete: set null]
+
+TableGroup Flight {
+	dbo.Flight
+	dbo.Route
+	dbo.Airport
+}
+
+TableGroup Aircraft {
+	dbo.Airplane
+	ref.Model
+}
+
+TableGroup Crew {
+	dbo.Crew
+	ref.CrewRank
+	ref.CrewType
+	dbo.FlightCrew
+}
