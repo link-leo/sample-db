@@ -1,7 +1,7 @@
 Project vet {
   database_type: 'SQL Server'
   Note: '''
-  A sandbox for practicing SQL queries. It simulates a small veterinary practice treating various pets and tracking their owners and visits.
+  A sandbox for practicing SQL queries. It simulates a small veterinary practice treating various pets and tracking their owners and visits. It comes with a variety of views to demonstrate how data is organized.
 
   Find more example databases (or clone the repository to get them all) at: https://github.com/link-leo/sample-db
 
